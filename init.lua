@@ -99,26 +99,9 @@ markMode = SubMode.new(
     end
 )
 
-commandMode = SubMode.new(
-    "Command Mode",
-    {
-        {modifiers = {ctrl = true}, key = 'g'}, -- only disables command mode
-        {modifiers = {ctrl = true}, key = 'f', func = pressKeyFunc({'cmd', 'shift'}, 'o')},
-        {modifiers = {ctrl = true}, key = 's', func = pressKeyFunc({'cmd'}, 's')},
-        -- next tab
-        {modifiers = {},            key = 'n', func = pressKeyFunc({'cmd', 'shift'}, JIS_RIGHT_BRACKET_CODE)},
-        -- previous tab
-        {modifiers = {},            key = 'p', func = pressKeyFunc({'cmd', 'shift'}, JIS_LEFT_BRACKET_CODE)},
-        -- close tab
-        {modifiers = {},            key = 'k', func = pressKeyFunc({'cmd'}, 'w')},
-    }
-)
-
 xcodeBindings = {
     -- mark mode
     hs.hotkey.new({'ctrl'}, 'space', function() markMode:enable() end),
-    -- command mode
-    hs.hotkey.new({'ctrl'}, 'x', function() commandMode:enable() end),
 
     -- etc
     -- jump to beginning/end of document
@@ -138,6 +121,12 @@ xcodeBindings = {
     -- paste
     createKeyRemap({'ctrl'}, 'y', {'cmd'}, 'v'),
 
+    -- cut
+    createKeyRemap({'ctrl'}, 'w', {'cmd'}, 'x'),
+
+    -- newline
+    createKeyRemap({'ctrl'}, 'm', {}, 'return'),
+
     -- kill line
     hs.hotkey.new({'ctrl'}, 'k', function()
         markMode:enable()
@@ -146,13 +135,18 @@ xcodeBindings = {
     end),
 }
 
-hs.window.filter.new('Xcode')
-    :subscribe(hs.window.filter.windowFocused,function() enableAll(xcodeBindings) end)
-    :subscribe(hs.window.filter.windowUnfocused,function()
+local function handleGlobalAppEvent(name, event, app)
+   if event == hs.application.watcher.activated then
+      -- hs.alert.show(name)
+      if name ~= "iTerm2" and name ~="PyCharm" and name ~="MacVim" then
+         enableAll(xcodeBindings)
+      else
         disableAll(xcodeBindings)
         markMode:disable()
         commandMode:disable()
-    end)
+      end
+   end
+end    
 
 -- for debug
 
@@ -179,3 +173,6 @@ k:bind({"cmd", "shift", "ctrl"}, 'P', function()
     keyTap:stop()
     k:exit()
 end)
+
+appsWatcher = hs.application.watcher.new(handleGlobalAppEvent)
+appsWatcher:start()
